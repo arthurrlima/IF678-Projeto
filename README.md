@@ -13,3 +13,28 @@ Instrução de uso:
  	2. rodar UDPServer.py
 	3. rodar UDPClient.py ativará a criação da conexão e transferencia de arquivos. 
 	ps: para mudar teste de arquivo .txt para .jpg (vice-versa) alterar file_name em UDPClient.py
+
+demofile32.jpg made with p5js, para verificar, rodar script em https://editor.p5js.org/:
+
+function setup() {
+  
+ let c = createCanvas(31, 31);
+  background('white');
+  
+  noLoop();
+  
+  for(i= 0;i <=31; i+=2){
+    for(j= 0;j <= 31; j+=2){
+      
+      let pick = random(0,2)
+      
+      if(pick <= 1){
+        stroke('black')
+        square(i, j, 1)
+      }
+    }
+  }
+  
+  saveCanvas(c, 'Canvas', 'jpg');
+
+}
