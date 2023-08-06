@@ -12,13 +12,15 @@ data = f.read(buf)
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.sendto(file_name.encode(), (UDP_IP, UDP_PORT))
-print ("Sending %s ..." % file_name)
+
+print ("Conexão Estabelecida! adress: "+UDP_IP)
+print ("Enviando %s ..." % file_name)
 
 
 while(data):
-    if(sock.sendto(data, (UDP_IP, UDP_PORT))):
+    if(sock.sendto(data.encode(), (UDP_IP, UDP_PORT))):
         data = f.read(buf)
-        time.sleep(0.02) # Give receiver a bit time to save
+        time.sleep(0.02) # Delay antes de fechar o socket
 
 sock.close()
 f.close()

@@ -13,6 +13,7 @@ while True:
     print ("Aguardando Conexao...")
     data, addr = sock.recvfrom(1024)
     if data:
+        print ("Conexão Estabelecida! \n Aguardando Arquivo...")
         print ("Recebendo arquivo: ")
         print ("File name:", data.decode('ascii'))
         file_name = data.strip()
