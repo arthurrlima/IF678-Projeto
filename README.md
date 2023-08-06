@@ -11,4 +11,5 @@ Thays Cipriano;
 Instrução de uso:
 	1. As pastas sv_files e cl_files devem estar vazias, o programa criará os arquivos quando forem transmitidos.
  	2. rodar UDPServer.py
-	3. rodar UDPClient.py ativará a criação da conexão e transferencia de arquivos.
+	3. rodar UDPClient.py ativará a criação da conexão e transferencia de arquivos. 
+	ps: para mudar teste de arquivo .txt para .jpg (vice-versa) alterar file_name em UDPClient.py
