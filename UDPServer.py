@@ -6,12 +6,12 @@ IN_PORT = 5005
 timeout = 3
 
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind((UDP_IP, IN_PORT))
+Server_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+Server_sock.bind((UDP_IP, IN_PORT))
 
 while True:
     print ("Aguardando Conexao...")
-    data, addr = sock.recvfrom(1024)
+    data, addr = Server_sock.recvfrom(1024)
     if data:
         print ("Conexão Estabelecida! \n Aguardando Arquivo...")
         print ("Recebendo arquivo: ")
@@ -21,11 +21,14 @@ while True:
     f = open("sv_files/demofile.txt", 'x')
 
     while True:
-        ready = select.select([sock], [], [], timeout)
+        ready = select.select([Server_sock], [], [], timeout)
         if ready[0]:
-            data, addr = sock.recvfrom(1024)
+            data, addr = Server_sock.recvfrom(1024)
             f.write(data.decode('ascii'))
         else:
             print ("%s Finish!" % file_name)
             f.close()
+
+            #Devolvendo Arquivo
+            Server_sock.sendto(data, addr)
             break
