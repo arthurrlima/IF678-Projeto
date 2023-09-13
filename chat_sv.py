@@ -1,5 +1,5 @@
 import socket      
-import chat_fx as fx
+import chatfx_sv as fx
 
 
 #AF_INET used for IPv4
@@ -56,6 +56,3 @@ while True:
     except KeyboardInterrupt as e:
         sys.exit()
 serverSock.close()
-
-
-

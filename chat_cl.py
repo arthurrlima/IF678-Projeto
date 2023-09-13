@@ -1,6 +1,6 @@
 import socket
 import sys
-import chat_fx as fx
+import chatfx_cl as fx
 
 serverName = "127.0.0.1"  #Enter your IP address here
 serverPort = 5005
