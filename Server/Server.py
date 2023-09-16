@@ -1,6 +1,6 @@
 import socket
 
-def receive_file(filename, client_address):
+def receive_file(filename, client_address, server_socket):
     with open(filename, 'wb') as f:
         while True:
             data, addr = server_socket.recvfrom(1024)
@@ -10,6 +10,22 @@ def receive_file(filename, client_address):
                 f.write(data)
 
     print(f"Arquivo {filename} recebido com sucesso!")
+
+def send_file(filename, client_address, server_socket):
+    try:
+        with open(filename, 'rb') as f:
+            data = f.read(1024)
+            while data:
+                server_socket.sendto(data, client_address)
+                last_data = data
+                data = f.read(1024)
+                if not data:
+                    server_socket.sendto(b"<end>", client_address)
+
+        print(f"Arquivo {filename} enviado para o cliente.")
+    except FileNotFoundError:
+        server_socket.sendto(b"File Not Found", client_address)
+
 
 # Configurações do servidor
 HOST = 'localhost'
@@ -30,22 +46,8 @@ while True:
 
     action, filename = data.split()
     if action.lower() == 'enviar':
-        receive_file(filename, client_address)
+        receive_file(filename, client_address, server_socket)
     elif action.lower() == 'receber':
-        try:
-            with open(filename, 'rb') as f:
-                data = f.read(1024)
-                while data:
-                    server_socket.sendto(data, client_address)
-                    last_data = data
-                    data = f.read(1024)
-                    if not data:
-                        server_socket.sendto(b"<end>", client_address)
-
-            print(f"Arquivo {filename} enviado para o cliente.")
-        except FileNotFoundError:
-            server_socket.sendto(b"File Not Found", client_address)
-    else:
-        print(f"Comando inválido: {data}")
+        send_file(filename, client_address, server_socket)        
 
 server_socket.close()

@@ -1,6 +1,6 @@
 import socket
 
-def send_file(filename):
+def send_file(filename, client_socket):
     with open(filename, 'rb') as f:
         data = f.read(1024)
         while data:
@@ -10,6 +10,19 @@ def send_file(filename):
             if not data:
                 client_socket.sendto(b"<end>", (HOST, PORT))
     print(f"Arquivo {filename} enviado com sucesso!")
+
+def recive_file(filename, client_socket):
+    with open(filename, 'wb') as f:
+            while True:
+                data, addr = client_socket.recvfrom(1024)
+                if data == b"File Not Found":
+                    print("Arquivo não encontrado no servidor.")
+                    break
+                if data == b"<end>":
+                    print(f"Arquivo {filename} recebido com sucesso.")
+                    break
+                if data != b'':
+                    f.write(data)
 
 # Configurações do cliente
 HOST = 'localhost'
@@ -28,23 +41,13 @@ while True:
     if action == 'enviar':
         filename = input("Digite o nome do arquivo a ser enviado: ")
         client_socket.sendto(f"{action} {filename}".encode(), (HOST, PORT))
-        send_file(filename)
+        send_file(filename, client_socket)
 
     elif action == 'receber':
         filename = input("Digite o nome do arquivo a ser recebido: ")
         client_socket.sendto(f"{action} {filename}".encode(), (HOST, PORT))
-
-        with open(filename, 'wb') as f:
-            while True:
-                data, addr = client_socket.recvfrom(1024)
-                if data == b"File Not Found":
-                    print("Arquivo não encontrado no servidor.")
-                    break
-                if data == b"<end>":
-                    print(f"Arquivo {filename} recebido com sucesso.")
-                    break
-                if data != b'':
-                    f.write(data)
+        recive_file(filename, client_socket)
+        
 
 
 
