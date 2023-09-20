@@ -10,18 +10,22 @@ def to_1024_bytes(data):
     return data
 
 #função que gera o pacote
-def make_pkt(file, expected_seq):
-    data = file.read(1024)
-    end = False
+def make_pkt(msg, expected_seq):
+    if len(msg) >= 1024:
+        data = msg[:1024]
+        msg = msg[1024:]
+    else:
+        data = msg
+        msg = b""
+
     if len(data) < 1024:
         #adiciona bytes nulos ao final do arquivo para que ele tenha 1024 bytes
         data += b'\x00' * (1024 - len(data))
-        end = True
     checksum = hashlib.md5(data).digest()
     # cria um pacote de 1028 bytes, sendo os 4 primeiros bytes o checksum e os 1024 bytes restantes o arquivo
     packet = struct.pack('<16s1024s1s', checksum, data, expected_seq)
     print(" pacote: ", packet)
-    return packet, end
+    return packet, msg
 
 #função que extrai o pacote
 def extract(server_socket):
@@ -146,9 +150,9 @@ def send_file(filename, client_address, server_socket):
             is_ack = isACK(server_socket)
 
 # rtd_rcv(packet)
-def receive_file(filename, client_address, server_socket):
-    with open(filename, 'wb') as f:
+def receive_file(client_address, server_socket):
 
+        msg = b""
         #inicio da sequencia de pacotes
         espected_seq = b'0'
         while True:
@@ -171,16 +175,6 @@ def receive_file(filename, client_address, server_socket):
                     print("Arquivo não encontrado no servidor.")
                     break
 
-                #verifica se o arquivo chegou ao fim
-                elif data == to_1024_bytes(b"<end>"):
-
-                    #envia o ACK
-                    packet = struct.pack('<3s1s',b"ACK", espected_seq)
-                    udp_send(server_socket, packet, client_address)
-
-                    print("Arquivo recebido com sucesso.")
-                    break
-
                 #verifica se o pacote não está corrompido
                 elif check_checksum(checksum, data):
                     #envia o ACK
@@ -188,9 +182,15 @@ def receive_file(filename, client_address, server_socket):
                     packet = struct.pack('<3s1s',b"ACK", espected_seq)
                     udp_send(server_socket, packet, client_address)
 
+                    if data == to_1024_bytes(b'<end>'):
+                        print("Arquivo recebido com sucesso.")
+                        #apaga os bytes nulos do final do arquivo
+                        msg = msg.rstrip(b'\x00')
+                        msg = msg.decode()
+                        print(str(msg))
+                        break
                     #escreve o pacote no arquivo
-                    deliver_data(f, data)
-
+                    msg += data
                     #muda a sequencia do pacote esperado
                     espected_seq = change_seq(espected_seq)
 
@@ -217,15 +217,14 @@ print(f"Servidor UDP iniciado em {HOST}:{PORT}")
 
 while True:
     data, client_address = server_socket.recvfrom(1041)
-    data = data.decode()
+    action = data.decode()
 
     if data.lower() == "exit":
         print("Servidor encerrado.")
         break
 
-    action, filename = data.split()
     if action.lower() == 'enviar':
-        receive_file(filename, client_address, server_socket)
+        receive_file(client_address, server_socket)
 
     elif action.lower() == 'receber':
         send_file(filename, client_address, server_socket)

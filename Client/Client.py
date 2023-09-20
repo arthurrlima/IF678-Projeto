@@ -10,18 +10,25 @@ def to_1024_bytes(data):
     return data
 
 #função que gera o pacote
-def make_pkt(file, expected_seq):
-    data = file.read(1024)
-    end = False
+def make_pkt(msg, expected_seq):
+    if len(msg) >= 1024:
+        data = msg[:1024] #pega os 1024 primeiros char do arquivo
+
+        #transforma em byte
+        data = data.encode()
+        msg = msg[1024:]
+    else:
+        data = msg.encode()
+        msg = b""
+
     if len(data) < 1024:
         #adiciona bytes nulos ao final do arquivo para que ele tenha 1024 bytes
         data += b'\x00' * (1024 - len(data))
-        end = True
     checksum = hashlib.md5(data).digest()
     # cria um pacote de 1028 bytes, sendo os 4 primeiros bytes o checksum e os 1024 bytes restantes o arquivo
     packet = struct.pack('<16s1024s1s', checksum, data, expected_seq)
     print(" pacote: ", packet)
-    return packet, end
+    return packet, msg
 
 #função que extrai o pacote
 def extract(server_socket):
@@ -62,19 +69,26 @@ def change_seq(seq):
         return b'0'
 
 
-def send_file(filename, client_socket, dest_address):
+def send_file(msg, client_socket, dest_address):
     try:
-        with open(filename, 'rb') as f:
+            end = True
             #dicionário que armazena os pacotes 0 e 1
             pac_order = {}
             espected_seq = b'0'
-            #gera o pacote
-            packet, end = make_pkt(f, espected_seq)
 
-            #armazena o pacote 0 no dicionário
-            pac_order[espected_seq] = (packet, end)
+            while end:
 
-            while packet:
+                # gera o próximo pacote
+                if msg == b"":
+                    packet, msg = make_pkt('<end>', espected_seq)
+                    pac_order[espected_seq] = (packet, msg)
+                    end = False
+
+                else:
+                    packet, msg = make_pkt(msg, espected_seq)
+                    pac_order[espected_seq] = (packet, msg)
+
+
 
                 #envia o pacote
                 udp_send(dest_address, packet, client_socket)
@@ -89,7 +103,7 @@ def send_file(filename, client_socket, dest_address):
                         print("Pacote fora de ordem.")
                         print("Reenviando pacote...\n")
                         espected_seq = change_seq(espected_seq)
-                        packet, end = pac_order[espected_seq]
+                        packet, msg = pac_order[espected_seq]
 
                     #caso o pacote esteja corrompido
                     else:
@@ -103,34 +117,11 @@ def send_file(filename, client_socket, dest_address):
                 #muda a sequencia do pacote esperado
                 espected_seq = change_seq(espected_seq)
 
-                #caso o pacote seja o último
-                if end:
 
-                    #envia o pacote
-                    packet = struct.pack('<16s1024s1s', hashlib.md5(b"<end>").digest(), b"<end>", espected_seq)
-                    udp_send(dest_address, packet, client_socket)
-                    is_ack , rcv_seq= isACK(client_socket)
 
-                    #verifica se o pacote foi corrompido ou se está fora de ordem
-                    while not is_ack:
-                        # caso o pacote esteja fora de ordem pega o pacote correto
-                        if espected_seq != rcv_seq:
-                            print("Pacote fora de ordem.")
-                            print("Reenviando pacote...\n")
-                            espected_seq = change_seq(espected_seq)
-                            packet, end = pac_order[espected_seq]
 
-                        # caso o pacote esteja corrompido
-                        else:
-                            print("Pacote corrompido.")
-                            print("Reenviando pacote...\n")
-                        udp_send(dest_address, packet, client_socket)
-                        is_ack, rcv_seq = isACK(client_socket)
-                    break
 
-                #gera o próximo pacote
-                packet, end = make_pkt(f, espected_seq)
-                pac_order[espected_seq] = (packet, end)
+
 
     #caso o arquivo não seja encontrado no servidor
     except FileNotFoundError:
@@ -182,8 +173,8 @@ dest_address  = (HOST, PORT)
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 while True:
-    action = input("Digite 'enviar' para enviar um arquivo ou 'receber' para receber um arquivo (ou 'exit' para sair): ").lower()
-
+    #action = input("Digite 'enviar' para enviar um arquivo ou 'receber' para receber um arquivo (ou 'exit' para sair): ").lower()
+    action = 'enviar'
     if action == 'exit':
         client_socket.sendto(action.encode(), dest_address)
         print("Cliente encerrado.")
@@ -191,12 +182,12 @@ while True:
 
     if action == 'enviar':
         filename = input("Digite o nome do arquivo a ser enviado: ")
-        client_socket.sendto(f"{action} {filename}".encode(), dest_address)
+        client_socket.sendto(action.encode(), dest_address)
         send_file(filename, client_socket, dest_address)
 
     elif action == 'receber':
         filename = input("Digite o nome do arquivo a ser recebido: ")
-        client_socket.sendto(f"{action} {filename}".encode(), dest_address)
+        client_socket.sendto(action.encode(), dest_address)
         receive_file(filename, client_socket, dest_address)
 
     else:
